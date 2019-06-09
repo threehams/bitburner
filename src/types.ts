@@ -55,7 +55,7 @@ export interface IMinMaxRange {
      * Value by which the bounds are to be divided for the final range
      */
     divisor?: number;
-    
+
     /**
      * The maximum bound of the range.
      */
@@ -65,4 +65,19 @@ export interface IMinMaxRange {
      * The minimum bound of the range.
      */
     min: number;
+}
+
+/**
+ * Object that holds mappings where the keys are the Bitburner stats.
+ * Uses shorthand notation for the stats
+ */
+export interface IStatMap<T> {
+    hack: T,
+    str: T,
+    def: T,
+    dex: T,
+    agi: T,
+    cha: T,
+    int?: T,
+    [key: string]: T | undefined,
 }

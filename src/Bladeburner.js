@@ -1,3 +1,14 @@
+// TODO Use CityNames from /src/Location/
+import {
+    City,
+    CityNames,
+    PopulationThreshold
+} from "./City";
+import { consoleHelpText } from "./ConsoleHelpText";
+import { Skills, initBladeburnerSkills } from "./Skills";
+
+import { ActionTypes } from "./data/ActionTypes";
+
 import { Augmentations } from "./Augmentation/Augmentations";
 import { AugmentationNames } from "./Augmentation/data/AugmentationNames";
 import { BitNodeMultipliers } from "./BitNode/BitNodeMultipliers";
@@ -39,8 +50,6 @@ import { removeElementById } from "../utils/uiHelpers/removeElementById";
 const stealthIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" viewBox="0 0 166 132"  style="fill:#adff2f;"><g><path d="M132.658-0.18l-24.321,24.321c-7.915-2.71-16.342-4.392-25.087-4.392c-45.84,0-83,46-83,46   s14.1,17.44,35.635,30.844L12.32,120.158l12.021,12.021L144.68,11.841L132.658-0.18z M52.033,80.445   c-2.104-4.458-3.283-9.438-3.283-14.695c0-19.054,15.446-34.5,34.5-34.5c5.258,0,10.237,1.179,14.695,3.284L52.033,80.445z"/><path d="M134.865,37.656l-18.482,18.482c0.884,3.052,1.367,6.275,1.367,9.612c0,19.055-15.446,34.5-34.5,34.5   c-3.337,0-6.56-0.483-9.611-1.367l-10.124,10.124c6.326,1.725,12.934,2.743,19.735,2.743c45.84,0,83-46,83-46   S153.987,50.575,134.865,37.656z"/></g></svg>&nbsp;`
 const killIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" viewBox="-22 0 511 511.99561" style="fill:#adff2f;"><path d="m.496094 466.242188 39.902344-39.902344 45.753906 45.753906-39.898438 39.902344zm0 0"/><path d="m468.421875 89.832031-1.675781-89.832031-300.265625 300.265625 45.753906 45.753906zm0 0"/><path d="m95.210938 316.785156 16.84375 16.847656h.003906l83.65625 83.65625 22.753906-22.753906-100.503906-100.503906zm0 0"/><path d="m101.445312 365.300781-39.902343 39.902344 45.753906 45.753906 39.902344-39.902343-39.90625-39.902344zm0 0"/></svg>`
 
-const CityNames = ["Aevum", "Chongqing", "Sector-12", "New Tokyo", "Ishima", "Volhaven"];
-
 const CyclesPerSecond = 5; // Game cycle is 200 ms
 
 const StaminaGainPerSecond = 0.0085;
@@ -68,7 +77,6 @@ const EffDexExponentialFactor = 0.035;
 
 const BaseRecruitmentTimeNeeded = 300; // Base time needed (s) to complete a Recruitment action
 
-const PopulationThreshold = 1e9; // Population which determines baseline success rate
 const PopulationExponent = 0.7; // Exponent that influences how different populations affect success rate
 const ChaosThreshold = 50; // City chaos level after which it starts making tasks harder
 
@@ -93,77 +101,8 @@ const HrcStaminaGain = 1; // Percentage Stamina gained from Hyperbolic Regenerat
 // DOM related variables
 const ActiveActionCssClass = "bladeburner-active-action";
 
-
 // Console related stuff
 let consoleHistoryIndex = 0;
-const consoleHelpText = {
-    helpList:"Use 'help [command]' to get more information about a particular Bladeburner console command.<br><br>" +
-         "automate [var] [val] [hi/low] Configure simple automation for Bladeburner tasks<br>" +
-         "clear/cls                     Clear the console<br>" +
-         "help [cmd]                    Display this help text, or help text for a specific command<br>" +
-         "log [en/dis] [type]           Enable or disable logging for events and actions<br>" +
-         "skill [action] [name]         Level or display info about your Bladeburner skills<br>" +
-         "start [type] [name]           Start a Bladeburner action/task<br>"  +
-         "stop                          Stops your current Bladeburner action/task<br>",
-    automate:"automate [var] [val] [hi/low]<br><br>" +
-             "A simple way to automate your Bladeburner actions. This console command can be used " +
-             "to automatically start an action when your stamina rises above a certain threshold, and " +
-             "automatically switch to another action when your stamina drops below another threshold.<br><br>" +
-             "automate status - Check the current status of your automation and get a brief description of what it'll do<br>" +
-             "automate en - Enable the automation feature<br>" +
-             "automate dis - Disable the automation feature<br><br>" +
-             "There are four properties that must be set for this automation to work properly. Here is how to set them:<br><br>" +
-             "automate stamina 100 high<br>" +
-             "automate contract Tracking high<br>" +
-             "automate stamina 50 low<br>" +
-             'automate general "Field Analysis" low<br><br>' +
-             "Using the four console commands above will set the automation to perform Tracking contracts " +
-             "if your stamina is 100 or higher, and then switch to Field Analysis if your stamina drops below " +
-             "50. Note that when setting the action, the name of the action is CASE-SENSITIVE. It must " +
-             "exactly match whatever the name is in the UI.",
-    clear:"clear<br><br>Clears the console",
-    cls:"cls<br><br>Clears the console",
-    help:"help [command]<br><br>" +
-         "Running 'help' with no arguments displays the general help text, which lists all console commands " +
-         "and a brief description of what they do. A command can be specified to get more specific help text " +
-         "about that particular command. For example:<br><br>" +
-         "help automate<br><br>" +
-         "will display specific information about using the automate console command",
-    log:"log [en/dis] [type]<br><br>" +
-        "Enable or disable logging. By default, the results of completing actions such as contracts/operations are logged " +
-        "in the console. There are also random events that are logged in the console as well. The five categories of " +
-        "things that get logged are:<br><br>" +
-        "[general, contracts, ops, blackops, events]<br><br>" +
-        "The logging for these categories can be enabled or disabled like so:<br><br>" +
-        "log dis contracts - Disables logging that occurs when contracts are completed<br>" +
-        "log en contracts - Enables logging that occurs when contracts are completed<br>" +
-        "log dis events - Disables logging for Bladeburner random events<br><br>" +
-        "Logging can be universally enabled/disabled using the 'all' keyword:<br><br>" +
-        "log dis all<br>" +
-        "log en all",
-    skill:"skill [action] [name]<br><br>" +
-          "Level or display information about your skills.<br><br>" +
-          "To display information about all of your skills and your multipliers, use:<br><br>" +
-          "skill list<br><br>" +
-          "To display information about a specific skill, specify the name of the skill afterwards. " +
-          "Note that the name of the skill is case-sensitive. Enter it exactly as seen in the UI. If " +
-          "the name of the skill has whitespace, enclose the name of the skill in double quotation marks:<br><br>" +
-          "skill list Reaper<br>" +
-          'skill list "Digital Observer"<br><br>' +
-          "This console command can also be used to level up skills:<br><br>" +
-          "skill level [skill name]",
-    start:"start [type] [name]<br><br>" +
-          "Start an action. An action is specified by its type and its name. The " +
-          "name is case-sensitive. It must appear exactly as it does in the UI. If " +
-          "the name of the action has whitespace, enclose it in double quotation marks. " +
-          "Valid action types include:<br><br>" +
-          "[general, contract, op, blackop]<br><br>" +
-          "Examples:<br><br>" +
-          'start contract Tracking<br>' +
-          'start op "Undercover Operation"<br>',
-    stop:"stop<br><br>" +
-         "Stop your current action and go idle",
-}
 
 // Keypresses for Console
 $(document).keydown(function(event) {
@@ -223,404 +162,7 @@ $(document).keydown(function(event) {
     }
 });
 
-function City(params={}) {
-    this.name = params.name ? params.name : CityNames[2]; // Sector-12
-
-    // Synthoid population and estimate
-    this.pop    = params.pop ? params.pop : getRandomInt(PopulationThreshold, 1.5 * PopulationThreshold);
-    this.popEst = this.pop * (Math.random() + 0.5);
-
-    // Number of Synthoid communities population and estimate
-    this.comms          = params.comms  ? params.comms  : getRandomInt(5, 150);
-    this.commsEst       = this.comms + getRandomInt(-5, 5);
-    if (this.commsEst < 0) {this.commsEst = 0;}
-    this.chaos          = 0;
-}
-
-City.prototype.improvePopulationEstimateByCount = function(n) {
-    if (isNaN(n)) {throw new Error("NaN passeed into City.improvePopulationEstimateByCount()");}
-    if (this.popEst < this.pop) {
-        this.popEst += n;
-        if (this.popEst > this.pop) {this.popEst = this.pop;}
-    } else if (this.popEst > this.pop) {
-        this.popEst -= n;
-        if (this.popEst < this.pop) {this.popEst = this.pop;}
-    }
-}
-
-// @p is the percentage, not the multiplier. e.g. pass in p = 5 for 5%
-City.prototype.improvePopulationEstimateByPercentage = function(p, skillMult=1) {
-    p = p*skillMult;
-    if (isNaN(p)) {throw new Error("NaN passed into City.improvePopulationEstimateByPercentage()");}
-    if (this.popEst < this.pop) {
-        ++this.popEst; // In case estimate is 0
-        this.popEst *= (1 + (p/100));
-        if (this.popEst > this.pop) {this.popEst = this.pop;}
-    } else if (this.popEst > this.pop) {
-        this.popEst *= (1 - (p/100));
-        if (this.popEst < this.pop) {this.popEst = this.pop;}
-    }
-}
-
-City.prototype.improveCommunityEstimate = function(n=1) {
-    if (isNaN(n)) {throw new Error("NaN passed into City.improveCommunityEstimate()");}
-    if (this.commsEst < this.comms) {
-        this.commsEst += n;
-        if (this.commsEst > this.comms) {this.commsEst = this.comms;}
-    } else if (this.commsEst > this.comms) {
-        this.commsEst -= n;
-        if (this.commsEst < this.comms) {this.commsEst = this.comms;}
-    }
-}
-
-/**
- * @params options:
- *  estChange(int): How much the estimate should change by
- *  estOffset(int): Add offset to estimate (offset by percentage)
- */
-City.prototype.changePopulationByCount = function(n, params={}) {
-    if (isNaN(n)) {throw new Error("NaN passed into City.changePopulationByCount()");}
-    this.pop += n;
-    if (params.estChange && !isNaN(params.estChange)) {this.popEst += params.estChange;}
-    if (params.estOffset) {
-        this.popEst = addOffset(this.popEst, params.estOffset);
-    }
-    this.popEst = Math.max(this.popEst, 0);
-}
-
-/**
- * @p is the percentage, not the multiplier. e.g. pass in p = 5 for 5%
- * @params options:
- *  changeEstEqually(bool) - Change the population estimate by an equal amount
- *  nonZero (bool)         - Set to true to ensure that population always changes by at least 1
- */
-City.prototype.changePopulationByPercentage = function(p, params={}) {
-    if (isNaN(p)) {throw new Error("NaN passed into City.changePopulationByPercentage()");}
-    if (p === 0) {return;}
-    var change = Math.round(this.pop * (p/100));
-
-    // Population always changes by at least 1
-    if (params.nonZero && change === 0) {
-        p > 0 ? change = 1 : change = -1;
-    }
-
-    this.pop += change;
-    if (params.changeEstEqually) {
-        this.popEst += change;
-        if (this.popEst < 0) {this.popEst = 0;}
-    }
-    return change;
-}
-
-City.prototype.changeChaosByCount = function(n) {
-    if (isNaN(n)) {throw new Error("NaN passed into City.changeChaosByCount()");}
-    if (n === 0) {return;}
-    this.chaos += n;
-    if (this.chaos < 0) {this.chaos = 0;}
-}
-
-// @p is the percentage, not the multiplier (e.g. pass in p = 5 for 5%)
-City.prototype.changeChaosByPercentage = function(p) {
-    if (isNaN(p)) {throw new Error("NaN passed into City.chaosChaosByPercentage()");}
-    if (p === 0) {return;}
-    var change = this.chaos * (p/100);
-    this.chaos += change;
-    if (this.chaos < 0) {this.chaos = 0;}
-}
-
-City.prototype.toJSON = function() {
-    return Generic_toJSON("City", this);
-}
-City.fromJSON = function(value) {
-    return Generic_fromJSON(City, value.data);
-}
-Reviver.constructors.City = City;
-
-function Skill(params={name:"foo", desc:"foo"}) {
-    if (params.name) {
-        this.name = params.name;
-    } else {
-        throw new Error("Failed to initialize Bladeburner Skill. No name was specified in ctor");
-    }
-    if (params.desc) {
-        this.desc = params.desc;
-    } else {
-        throw new Error("Failed to initialize Bladeburner Skills. No desc was specified in ctor");
-    }
-    this.baseCost       = params.baseCost   ? params.baseCost   : 1; // Cost is in Skill Points
-    this.costInc        = params.costInc    ? params.costInc    : 1; // Additive cost increase per level
-
-    if (params.maxLvl) {this.maxLvl = params.maxLvl;}
-
-    /**
-     * These benefits are additive. So total multiplier will be level (handled externally) times the
-     * effects below
-     */
-    if (params.successChanceAll)            {this.successChanceAll          = params.successChanceAll;}
-    if (params.successChanceStealth)        {this.successChanceStealth      = params.successChanceStealth;}
-    if (params.successChanceKill)           {this.successChanceKill         = params.successChanceKill;}
-    if (params.successChanceContract)       {this.successChanceContract     = params.successChanceContract;}
-    if (params.successChanceOperation)      {this.successChanceOperation    = params.successChanceOperation;}
-
-    /**
-     * This multiplier affects everything that increases synthoid population/community estimate
-     * e.g. Field analysis, Investigation Op, Undercover Op
-     */
-    if (params.successChanceEstimate)       {this.successChanceEstimate     = params.successChanceEstimate;}
-
-    if (params.actionTime)                  {this.actionTime                = params.actionTime;}
-    if (params.effHack)                     {this.effHack                   = params.effHack;}
-    if (params.effStr)                      {this.effStr                    = params.effStr;}
-    if (params.effDef)                      {this.effDef                    = params.effDef;}
-    if (params.effDex)                      {this.effDex                    = params.effDex;}
-    if (params.effAgi)                      {this.effAgi                    = params.effAgi;}
-    if (params.effCha)                      {this.effCha                    = params.effCha;}
-
-    if (params.stamina)                     {this.stamina                   = params.stamina;}
-    if (params.money)                       {this.money                     = params.money;}
-    if (params.expGain)                     {this.expGain                   = params.expGain;}
-
-    //Equipment
-    if (params.weaponAbility)       {this.weaponAbility     = params.weaponAbility;}
-    if (params.gunAbility)          {this.gunAbility        = params.gunAbility;}
-}
-
-Skill.prototype.calculateCost = function(currentLevel) {
-    return Math.floor((this.baseCost + (currentLevel * this.costInc)) * BitNodeMultipliers.BladeburnerSkillCost);
-}
-const Skills = {};
-const SkillNames = {
-    BladesIntuition:    "Blade's Intuition",
-    Cloak:              "Cloak",
-    Marksman:           "Marksman",
-    WeaponProficiency:  "Weapon Proficiency",
-    ShortCircuit:       "Short-Circuit",
-    DigitalObserver:    "Digital Observer",
-    Tracer:             "Tracer",
-    Overclock:          "Overclock",
-    Reaper:             "Reaper",
-    EvasiveSystem:      "Evasive System",
-    Datamancer:         "Datamancer",
-    CybersEdge:         "Cyber's Edge",
-    HandsOfMidas:       "Hands of Midas",
-    Hyperdrive:         "Hyperdrive",
-}
-
-// Base Class for Contracts, Operations, and BlackOps
-function Action(params={}) {
-    this.name           = params.name       ? params.name       : "";
-    this.desc           = params.desc       ? params.desc       : "";
-
-    // Difficulty scales with level. See getDifficulty() method
-    this.level          = 1;
-    this.maxLevel       = 1;
-    this.autoLevel      = true;
-    this.baseDifficulty = params.baseDifficulty ? addOffset(params.baseDifficulty, 10) : 100;
-    this.difficultyFac  = params.difficultyFac  ? params.difficultyFac  : 1.01;
-
-    // Rank increase/decrease is affected by this exponent
-    this.rewardFac      = params.rewardFac ? params.rewardFac : 1.02;
-
-    this.successes      = 0;
-    this.failures       = 0;
-
-    // All of these scale with level/difficulty
-    this.rankGain = params.rankGain ? params.rankGain   : 0;
-    if (params.rankLoss) {this.rankLoss = params.rankLoss;}
-    if (params.hpLoss) {
-        this.hpLoss = params.hpLoss;
-        this.hpLost = 0;
-    }
-
-    // Action Category. Current categories are stealth and kill
-    this.isStealth  = params.isStealth ? true : false;
-    this.isKill     = params.isKill ? true : false;
-
-    /**
-     * Number of this contract remaining, and its growth rate
-     * Growth rate is an integer and the count will increase by that integer every "cycle"
-     */
-    this.count          = params.count          ? params.count          : getRandomInt(1e3, 25e3);
-    this.countGrowth    = params.countGrowth    ? params.countGrowth    : getRandomInt(1, 5);
-
-    // Weighting of each stat in determining action success rate
-    var defaultWeights = {hack:1/7,str:1/7,def:1/7,dex:1/7,agi:1/7,cha:1/7,int:1/7};
-    this.weights       = params.weights    ? params.weights    : defaultWeights;
-
-    // Check to make sure weights are summed properly
-    let sum = 0;
-    for (const weight in this.weights) {
-        if (this.weights.hasOwnProperty(weight)) {
-            sum += this.weights[weight];
-        }
-    }
-    if (sum - 1 >= 10 * Number.EPSILON) {
-        throw new Error("Invalid weights when constructing Action " + this.name +
-                        ". The weights should sum up to 1. They sum up to :" + 1);
-    }
-
-    // Diminishing returns of stats (stat ^ decay where 0 <= decay <= 1)
-    const defaultDecays = { hack: 0.9, str: 0.9, def: 0.9, dex: 0.9, agi: 0.9, cha: 0.9, int: 0.9 };
-    this.decays = params.decays ? params.decays : defaultDecays;
-    for (const decay in this.decays) {
-        if (this.decays.hasOwnProperty(decay)) {
-            if (this.decays[decay] > 1) {
-                throw new Error("Invalid decays when constructing " +
-                                "Action " + this.name + ". " +
-                                "Decay value cannot be greater than 1");
-            }
-        }
-    }
-}
-
-Action.prototype.getDifficulty = function() {
-    var difficulty = this.baseDifficulty * Math.pow(this.difficultyFac, this.level-1);
-    if (isNaN(difficulty)) {throw new Error("Calculated NaN in Action.getDifficulty()");}
-    return difficulty;
-}
-
-/**
- * @inst - Bladeburner Object
- * @params - options:
- *  est (bool): Get success chance estimate instead of real success chance
- */
-Action.prototype.getSuccessChance = function(inst, params={}) {
-    if (inst == null) {throw new Error("Invalid Bladeburner instance passed into Action.getSuccessChance");}
-    var difficulty = this.getDifficulty();
-    var competence = 0;
-    for (var stat in this.weights) {
-        if (this.weights.hasOwnProperty(stat)) {
-            var playerStatLvl = Player.queryStatFromString(stat);
-            var key = "eff" + stat.charAt(0).toUpperCase() + stat.slice(1);
-            var effMultiplier = inst.skillMultipliers[key];
-            if (effMultiplier == null) {
-                console.log("ERROR: Failed to find Bladeburner Skill multiplier for: " + stat);
-                effMultiplier = 1;
-            }
-            competence += (this.weights[stat] * Math.pow(effMultiplier*playerStatLvl, this.decays[stat]));
-        }
-    }
-    competence *= inst.calculateStaminaPenalty();
-
-    // For Operations, factor in team members
-    if (this instanceof Operation || this instanceof BlackOperation) {
-        if (this.teamCount && this.teamCount > 0) {
-            this.teamCount = Math.min(this.teamCount, inst.teamSize);
-            var teamMultiplier = Math.pow(this.teamCount, 0.05);
-            competence *= teamMultiplier;
-        }
-    }
-
-    // Lower city population results in lower chances
-    if (!(this instanceof BlackOperation)) {
-        var city = inst.getCurrentCity();
-        if (params.est) {
-            competence *= Math.pow((city.popEst / PopulationThreshold), PopulationExponent);
-        } else {
-            competence *= Math.pow((city.pop / PopulationThreshold), PopulationExponent);
-        }
-
-        // Too high of a chaos results in lower chances
-        if (city.chaos > ChaosThreshold) {
-            var diff = 1 + (city.chaos - ChaosThreshold);
-            var mult = Math.pow(diff, 0.1);
-            difficulty *= mult;
-        }
-
-        // For Raid Operations, no communities = fail
-        if (this instanceof Operation && this.name === "Raid") {
-            if (city.comms <= 0) {return 0;}
-        }
-    }
-
-    // Factor skill multipliers into success chance
-    competence *= inst.skillMultipliers.successChanceAll;
-    if (this instanceof Operation || this instanceof BlackOperation) {
-        competence *= inst.skillMultipliers.successChanceOperation;
-    }
-    if (this instanceof Contract) {
-        competence *= inst.skillMultipliers.successChanceContract;
-    }
-    if (this.isStealth) {
-        competence *= inst.skillMultipliers.successChanceStealth;
-    }
-    if (this.isKill) {
-        competence *= inst.skillMultipliers.successChanceKill;
-    }
-
-    // Augmentation multiplier
-    competence *= Player.bladeburner_success_chance_mult;
-
-    if (isNaN(competence)) {throw new Error("Competence calculated as NaN in Action.getSuccessChance()");}
-    return Math.min(1, competence / difficulty);
-}
-
-/**
- * Tests for success. Should be called when an action has completed
- * @param inst {Bladeburner} - Bladeburner instance
- */
-Action.prototype.attempt = function(inst) {
-    return (Math.random() < this.getSuccessChance(inst));
-}
-
-Action.prototype.getActionTime = function(inst) {
-    var difficulty = this.getDifficulty();
-    var baseTime = difficulty / DifficultyToTimeFactor;
-    var skillFac = inst.skillMultipliers.actionTime; // Always < 1
-
-    var effAgility      = Player.agility * inst.skillMultipliers.effAgi;
-    var effDexterity    = Player.dexterity * inst.skillMultipliers.effDex;
-    var statFac = 0.5 * (Math.pow(effAgility, EffAgiExponentialFactor) +
-                         Math.pow(effDexterity, EffDexExponentialFactor) +
-                         (effAgility / EffAgiLinearFactor) +
-                         (effDexterity / EffDexLinearFactor)); // Always > 1
-
-    baseTime = Math.max(1, baseTime * skillFac / statFac);
-
-    if (this instanceof Contract) {
-        return Math.ceil(baseTime);
-    } else if (this instanceof Operation) {
-        return Math.ceil(baseTime);
-    } else if (this instanceof BlackOperation) {
-        return Math.ceil(baseTime * 1.5);
-    } else {
-        throw new Error("Unrecognized Action Type in Action.getActionTime(this). Must be either Contract, Operation, or BlackOperation");
-    }
-}
-
-Action.prototype.getSuccessesNeededForNextLevel = function(baseSuccessesPerLevel) {
-    return Math.ceil((0.5) * (this.maxLevel) * (2 * baseSuccessesPerLevel + (this.maxLevel-1)));
-}
-
-Action.prototype.setMaxLevel = function(baseSuccessesPerLevel) {
-    if (this.successes >= this.getSuccessesNeededForNextLevel(baseSuccessesPerLevel)) {
-        ++this.maxLevel;
-    }
-}
-
-Action.prototype.toJSON = function() {
-    return Generic_toJSON("Action", this);
-}
-Action.fromJSON = function(value) {
-    return Generic_fromJSON(Action, value.data);
-}
-Reviver.constructors.Action = Action;
 const GeneralActions = {}; // Training, Field Analysis, Recruitment, etc.
-
-// Action Identifier enum
-const ActionTypes = Object.freeze({
-    "Idle":                             1,
-    "Contract":                         2,
-    "Operation":                        3,
-    "BlackOp":                          4,
-    "BlackOperation":                   4,
-    "Training":                         5,
-    "Recruitment":                      6,
-    "FieldAnalysis":                    7,
-    "Field Analysis":                   7,
-    "Diplomacy":                        8,
-    "Hyperbolic Regeneration Chamber":  9,
-});
 
 function ActionIdentifier(params={}) {
     if (params.name) {this.name = params.name;}
@@ -1593,7 +1135,8 @@ Bladeburner.prototype.getDiplomacyEffectiveness = function() {
     const CharismaLinearFactor = 1e3;
     const CharismaExponentialFactor = 0.045;
 
-    const charismaEff = Math.pow(Player.charisma, CharismaExponentialFactor) + Player.charisma / CharismaLinearFactor;
+    const effCha = Player.charisma * this.skillMultipliers.effCha;
+    const charismaEff = Math.pow(effCha, CharismaExponentialFactor) + Player.charisma / CharismaLinearFactor;
     return (100 - charismaEff) / 100;
 }
 
@@ -3899,93 +3442,7 @@ Reviver.constructors.Bladeburner = Bladeburner;
  *  eg: contracts, operations
  */
 function initBladeburner() {
-    // Skills
-    Skills[SkillNames.BladesIntuition] = new Skill({
-        name:SkillNames.BladesIntuition,
-        desc:"Each level of this skill increases your success chance " +
-             "for all Contracts, Operations, and BlackOps by 3%",
-        baseCost: 3, costInc: 2.1,
-        successChanceAll:3
-    });
-    Skills[SkillNames.Cloak] = new Skill({
-        name:SkillNames.Cloak,
-        desc:"Each level of this skill increases your " +
-             "success chance in stealth-related Contracts, Operations, and BlackOps by 5.5%",
-        baseCost: 2, costInc: 1.1,
-        successChanceStealth:5.5
-    });
-
-    // TODO Marksman - If items are ever implemented
-    // TODO Weapon Proficiency - If items are ever implemented
-
-    Skills[SkillNames.ShortCircuit] = new Skill({
-        name:SkillNames.ShortCircuit,
-        desc:"Each level of this skill increases your success chance " +
-             "in Contracts, Operations, and BlackOps that involve retirement by 5.5%",
-        baseCost: 2, costInc: 2.1,
-        successChanceKill:5.5
-    });
-    Skills[SkillNames.DigitalObserver] = new Skill({
-        name:SkillNames.DigitalObserver,
-        desc:"Each level of this skill increases your success chance in " +
-             "all Operations and BlackOps by 4%",
-        baseCost: 2, costInc: 2.1,
-        successChanceOperation:4
-    });
-    Skills[SkillNames.Tracer] = new Skill({
-        name:SkillNames.Tracer,
-        desc:"Each level of this skill increases your success chance in " +
-             "all Contracts by 4%",
-        baseCost: 2, costInc: 2.1,
-        successChanceContract:4
-    });
-    Skills[SkillNames.Overclock] = new Skill({
-        name:SkillNames.Overclock,
-        desc:"Each level of this skill decreases the time it takes " +
-             "to attempt a Contract, Operation, and BlackOp by 1% (Max Level: 90)",
-        baseCost: 3, costInc: 1.4, maxLvl: 90,
-        actionTime:1
-    });
-    Skills[SkillNames.Reaper] = new Skill({
-        name: SkillNames.Reaper,
-        desc: "Each level of this skill increases your effective combat stats for Bladeburner actions by 2%",
-        baseCost: 2, costInc: 2.1,
-        effStr: 2, effDef: 2, effDex: 2, effAgi: 2
-    });
-    Skills[SkillNames.EvasiveSystem] = new Skill({
-        name:SkillNames.EvasiveSystem,
-        desc:"Each level of this skill increases your effective " +
-             "dexterity and agility for Bladeburner actions by 4%",
-        baseCost: 2, costInc: 2.1,
-        effDex: 4, effAgi: 4
-    });
-    Skills[SkillNames.Datamancer] = new Skill({
-        name:SkillNames.Datamancer,
-        desc:"Each level of this skill increases your effectiveness in " +
-             "synthoid population analysis and investigation by 5%. " +
-             "This affects all actions that can potentially increase " +
-            "the accuracy of your synthoid population/community estimates.",
-        baseCost:3, costInc:1,
-        successChanceEstimate:5
-    });
-    Skills[SkillNames.CybersEdge] = new Skill({
-        name:SkillNames.CybersEdge,
-        desc:"Each level of this skill increases your max stamina by 2%",
-        baseCost:1, costInc:3,
-        stamina:2
-    });
-    Skills[SkillNames.HandsOfMidas] = new Skill({
-        name: SkillNames.HandsOfMidas,
-        desc: "Each level of this skill increases the amount of money you receive from Contracts by 10%",
-        baseCost: 2, costInc: 2.5,
-        money: 10,
-    });
-    Skills[SkillNames.Hyperdrive] = new Skill({
-        name: SkillNames.Hyperdrive,
-        desc: "Each level of this skill increases the experience earned from Contracts, Operations, and BlackOps by 10%",
-        baseCost: 1, costInc: 2.5,
-        expGain: 10,
-    });
+    initBladeburnerSkills();
 
     // General Actions
     let actionName;

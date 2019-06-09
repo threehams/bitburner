@@ -1,6 +1,5 @@
 import { CONSTANTS } from "../Constants";
-import { FactionInfo,
-         FactionInfos } from "./FactionInfo";
+import { FactionInfo, FactionInfos } from "./FactionInfo";
 import { Generic_fromJSON, Generic_toJSON, Reviver } from "../../utils/JSONReviver";
 
 export class Faction {

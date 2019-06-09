@@ -3,9 +3,11 @@
  * @param min The minimum value in the range.
  * @param max The maximum value in the range.
  */
+import { MathRandomRef } from "../../src/utils/MathRandomRef";
+
 export function getRandomInt(min: number, max: number) {
     const lower: number = Math.min(min, max);
     const upper: number = Math.max(min, max);
 
-    return Math.floor(Math.random() * (upper - lower + 1)) + lower;
+    return Math.floor(MathRandomRef() * (upper - lower + 1)) + lower;
 }
