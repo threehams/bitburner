@@ -10,38 +10,31 @@ import { Generic_fromJSON, Generic_toJSON, Reviver } from "../../utils/JSONReviv
 import { addOffset } from "../../utils/helpers/addOffset";
 import { getRandomInt } from "../../utils/helpers/getRandomInt";
 
-export interface IConstructorParams {
+export interface IActionConstructorParams {
     name: string;
     desc: string;
-    baseDifficulty: number;
-    difficultyFac: number;
+    baseDifficulty?: number;
+    difficultyFac?: number;
     rewardFac?: number;
-    rankGain: number;
+    rankGain?: number;
     rankLoss?: number;
     hpLoss?: number;
     isStealth?: boolean;
     isKill?: boolean;
-    count: number;
-    countGrowth: number;
-    weights: IStatMap<number>;
-    decays: IStatMap<number>;
+    count?: number;
+    countGrowth?: number;
+    weights?: IStatMap<number>;
+    decays?: IStatMap<number>;
 }
 
-const DefaultParams = {
+const ActionDefaultParams = {
     name: "",
     desc: "",
-    baseDifficulty: 100,
-    difficultyFac: 1.01,
-    rankGain: 0,
-    count: getRandomInt(1e3, 25e3),
-    countGrowth: getRandomInt(1, 5),
-    weights: { hack: 1/7, str: 1/7, def: 1/7, dex: 1/7, agi: 1/7, cha: 1/7, int: 1/7 },
-    decays: { hack: 0.9, str: 0.9, def: 0.9, dex: 0.9, agi: 0.9, cha: 0.9, int: 0.9 },
 }
 
 export class Action {
     /**
-     * Initiatizes an Action object from a JSON save state.
+     * Initiatizes a Action object from a JSON save state.
      */
     static fromJSON(value: any): Action {
         return Generic_fromJSON(Action, value.data);
@@ -76,7 +69,7 @@ export class Action {
      * Action's base difficulty. Numerical representation of how likely the player
      * is to succeed at this.
      */
-    baseDifficulty: number;
+    baseDifficulty: number = 100;
 
     /**
      * Multiplier that affects how the difficulty increases with level
@@ -102,7 +95,7 @@ export class Action {
      * Base amount of rank gained when successfully completing this action.
      * Scales with level
      */
-    rankGain: number;
+    rankGain: number = 0;
 
     /**
      * Base amount of rank lost when failing at this action. Scales with level
@@ -117,52 +110,52 @@ export class Action {
     /**
      * Whether this is a stealth action
      */
-    isStealth: boolean = false;
+    isStealth?: boolean;
 
     /**
      * Whether this is a "killing" action (involves retirement)
      */
-    isKill: boolean = false;
+    isKill?: boolean;
 
     /**
      * Number of actions remaining
      */
-    count: number;
+    count?: number;
 
     /**
      * Rate at which this action's count increases over time
      */
-    countGrowth: number;
+    countGrowth?: number;
 
     /**
      * Weighting of each stat in determining action success rate. Must total
      * to 100
      */
-    weights: IStatMap<number>;
+    weights?: IStatMap<number>;
 
     /**
      * Map of each stat that describes the diminishing returns that stats have on
      * this action's success chance
      */
-    decays: IStatMap<number>;
+    decays?: IStatMap<number>;
 
-    constructor(params: IConstructorParams=DefaultParams) {
+    constructor(params: IActionConstructorParams=ActionDefaultParams) {
+
         this.name = params.name;
         this.desc = params.desc;
-        this.baseDifficulty = addOffset(params.baseDifficulty, 10);
-        this.difficultyFac = params.difficultyFac;
-        this.rankGain = params.rankGain;
-        this.count = params.count;
-        this.countGrowth = params.countGrowth;
 
+        if (typeof params.baseDifficulty === "number") { this.baseDifficulty = params.baseDifficulty; }
+        if (typeof params.difficultyFac === "number") { this.difficultyFac = params.difficultyFac; }
+        if (typeof params.rankGain === "number") { this.rankGain = params.rankGain; }
+        if (typeof params.count === "number") { this.count = params.count; }
+        if (typeof params.countGrowth === "number") { this.countGrowth = params.countGrowth; }
         if (typeof params.rewardFac === "number") { this.rewardFac = params.rewardFac; }
         if (typeof params.rankLoss === "number") { this.rankLoss = params.rankLoss; }
         if (typeof params.hpLoss === "number") { this.hpLoss = params.hpLoss; }
         if (typeof params.isStealth === "boolean") { this.isStealth = params.isStealth; }
         if (typeof params.isKill === "boolean") { this.isKill = params.isKill; }
-
-        this.weights = params.weights;
-        this.decays = params.decays;
+        if (typeof this.weights === "object") { this.weights = params.weights; }
+        if (typeof this.decays === "object") { this.decays = params.decays; }
 
         // Validate stat weights and decays
         if (!checkWeightingObject(this.weights as IMap<number>, 1)) {
@@ -175,9 +168,10 @@ export class Action {
         }
     }
 
-    getDifficulty = function() {
-        var difficulty = this.baseDifficulty * Math.pow(this.difficultyFac, this.level-1);
+    getDifficulty(): number {
+        const difficulty = this.baseDifficulty * Math.pow(this.difficultyFac, this.level - 1);
         if (isNaN(difficulty)) {throw new Error("Calculated NaN in Action.getDifficulty()");}
+
         return difficulty;
     }
 
@@ -186,7 +180,7 @@ export class Action {
      * @params - options:
      *  est (bool): Get success chance estimate instead of real success chance
      */
-    getSuccessChance = function(inst, params={}) {
+    getSuccessChance = (inst, params={}) {
         if (inst == null) {throw new Error("Invalid Bladeburner instance passed into Action.getSuccessChance");}
         var difficulty = this.getDifficulty();
         var competence = 0;
@@ -290,11 +284,11 @@ export class Action {
         }
     }
 
-    getSuccessesNeededForNextLevel = function(baseSuccessesPerLevel) {
+    getSuccessesNeededForNextLevel(baseSuccessesPerLevel: number): number {
         return Math.ceil((0.5) * (this.maxLevel) * (2 * baseSuccessesPerLevel + (this.maxLevel-1)));
     }
 
-    setMaxLevel = function(baseSuccessesPerLevel) {
+    setMaxLevel(baseSuccessesPerLevel: number): void {
         if (this.successes >= this.getSuccessesNeededForNextLevel(baseSuccessesPerLevel)) {
             ++this.maxLevel;
         }
@@ -306,7 +300,6 @@ export class Action {
     toJSON(): any {
         return Generic_toJSON("Action", this);
     }
+}
 
- }
-
- Reviver.constructors.Action = Action;
+Reviver.constructors.Action = Action;
