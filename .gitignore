@@ -1,0 +1,12 @@
+.vscode
+Changelog.txt
+Netburner.txt
+/doc/build
+/node_modules
+/dist/*.map
+/test/*.map
+/test/*.bundle.*
+/test/*.css
+
+# editor files
+.vscode
