@@ -26,7 +26,7 @@ export class TravelAgencyLocation extends React.Component<IProps, any> {
    */
   btnStyle: any;
 
-  constructor(props: IProps) {
+  constructor(props: asdf) {
     super(props);
 
     this.btnStyle = { display: "block" };
