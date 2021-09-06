@@ -3,7 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  setup:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -15,23 +15,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-  test:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
       - name: Test
         run: npm run test
 
-  lint:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
       - name: Test
         run: npm run lint
 
-  typescript:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
       - name: Test
         run: npx tsc
