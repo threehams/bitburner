@@ -6,6 +6,7 @@
     "jsx": "react",
     "lib": ["es2016", "dom", "es2017.object", "es2019"],
     "module": "commonjs",
+    "noEmit": true,
     "target": "es6",
     "sourceMap": true,
     "strict": true
